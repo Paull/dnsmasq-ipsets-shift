@@ -575,11 +575,11 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
   int i, j, qtype, qclass, aqtype, aqclass, ardlen, res, searched_soa = 0;
   unsigned long ttl = 0;
   struct all_addr addr;
-#ifdef HAVE_IPSET
-  char **ipsets_cur;
-#else
-  (void)ipsets; /* unused */
-#endif
+//#ifdef HAVE_IPSET
+//  char **ipsets_cur;
+//#else
+//  (void)ipsets; /* unused */
+//#endif
   
   cache_start_insert();
 
@@ -782,17 +782,17 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
 #endif
 			}
 		      
-#ifdef HAVE_IPSET
-		      if (ipsets && (flags & (F_IPV4 | F_IPV6)))
-			{
-			  ipsets_cur = ipsets;
-			  while (*ipsets_cur)
-			    {
-			      log_query((flags & (F_IPV4 | F_IPV6)) | F_IPSET, name, &addr, *ipsets_cur);
-			      add_to_ipset(*ipsets_cur++, &addr, flags, 0);
-			    }
-			}
-#endif
+//#ifdef HAVE_IPSET
+//		      if (ipsets && (flags & (F_IPV4 | F_IPV6)))
+//			{
+//			  ipsets_cur = ipsets;
+//			  while (*ipsets_cur)
+//			    {
+//			      log_query((flags & (F_IPV4 | F_IPV6)) | F_IPSET, name, &addr, *ipsets_cur);
+//			      add_to_ipset(*ipsets_cur++, &addr, flags, 0);
+//			    }
+//			}
+//#endif
 		      
 		      newc = cache_insert(name, &addr, now, attl, flags | F_FORWARD | secflag);
 		      if (newc && cpp)
