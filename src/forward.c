@@ -1367,31 +1367,6 @@ void receive_query(struct listener *listen, time_t now)
         log_query(F_QUERY | F_IPV4 | F_FORWARD, daemon->namebuff,
             (struct all_addr *)&source_addr.in.sin_addr, types);
 
-#ifdef HAVE_IPSET
-        /* Similar algorithm to search_servers. */
-        if (daemon->ipsets)
-        {
-            struct ipsets *ipset_pos;
-            unsigned int namelen = strlen(daemon->namebuff);
-            unsigned int matchlen = 0;
-            for (ipset_pos = daemon->ipsets; ipset_pos; ipset_pos = ipset_pos->next)
-            {
-                unsigned int domainlen = strlen(ipset_pos->domain);
-                char *matchstart = daemon->namebuff + namelen - domainlen;
-                if (namelen >= domainlen && hostname_isequal(matchstart, ipset_pos->domain) &&
-                    (domainlen == 0 || namelen == domainlen || *(matchstart - 1) == '.' ) &&
-                    domainlen >= matchlen)
-                    {
-                        matchlen = domainlen;
-                        log_query(F_IPV4 | F_IPSET, daemon->namebuff, (struct all_addr *)&source_addr.in.sin_addr, *ipset_pos->sets);
-                        add_to_ipset(*ipset_pos->sets, (struct all_addr *)&source_addr.in.sin_addr, F_IPV4 | F_IPSET, 0);
-                    } else {
-                        log_query(F_IPV4 | F_IPSET_DEL, daemon->namebuff, (struct all_addr *)&source_addr.in.sin_addr, *ipset_pos->sets);
-                        add_to_ipset(*ipset_pos->sets, (struct all_addr *)&source_addr.in.sin_addr, F_IPV4 | F_IPSET, 1);
-                    }
-            }
-        }
-#endif
       }
 #ifdef HAVE_IPV6
       else
@@ -1452,6 +1427,44 @@ void receive_query(struct listener *listen, time_t now)
   else
 #endif
     {
+#ifdef HAVE_IPSET
+        /* Similar algorithm to search_servers. */
+        if (listen->family == AF_INET && daemon->ipsets)
+        {
+            struct ipsets *ipset_pos;
+            unsigned int namelen = strlen(daemon->namebuff);
+            unsigned int matchlen = 0;
+            for (ipset_pos = daemon->ipsets; ipset_pos; ipset_pos = ipset_pos->next)
+            {
+                unsigned int domainlen = strlen(ipset_pos->domain);
+                char *matchstart = daemon->namebuff + namelen - domainlen;
+                if (namelen >= domainlen && hostname_isequal(matchstart, ipset_pos->domain) &&
+                    (domainlen == 0 || namelen == domainlen || *(matchstart - 1) == '.' ) &&
+                    domainlen >= matchlen)
+                    {
+                        matchlen = domainlen;
+                        log_query(F_IPV4 | F_IPSET, daemon->namebuff, (struct all_addr *)&source_addr.in.sin_addr, *ipset_pos->sets);
+                        add_to_ipset(*ipset_pos->sets, (struct all_addr *)&source_addr.in.sin_addr, F_IPV4 | F_IPSET, 0);
+                    }
+            }
+            if (matchlen)
+            {
+                for (ipset_pos = daemon->ipsets; ipset_pos; ipset_pos = ipset_pos->next)
+                {
+                    unsigned int domainlen = strlen(ipset_pos->domain);
+                    char *matchstart = daemon->namebuff + namelen - domainlen;
+                    if (namelen >= domainlen && hostname_isequal(matchstart, ipset_pos->domain) &&
+                        (domainlen == 0 || namelen == domainlen || *(matchstart - 1) == '.' ) &&
+                        domainlen >= matchlen)
+                        {
+                        } else {
+                            log_query(F_IPV4 | F_IPSET_DEL, daemon->namebuff, (struct all_addr *)&source_addr.in.sin_addr, *ipset_pos->sets);
+                            add_to_ipset(*ipset_pos->sets, (struct all_addr *)&source_addr.in.sin_addr, F_IPV4 | F_IPSET, 1);
+                        }
+                }
+            }
+        }
+#endif
       int ad_reqd = do_bit;
        /* RFC 6840 5.7 */
       if (header->hb4 & HB4_AD)
